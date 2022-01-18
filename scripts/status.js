@@ -1,3 +1,4 @@
+import { formatMoney } from './utils';
 /** @param {NS} ns **/
 export async function main(ns) {
 	const hosts = getHosts(ns);
@@ -131,26 +132,4 @@ function pad(input, fixed = 0, pad = 10) {
 	}
 	return String(input).padEnd(pad, ' ');
 
-}
-
-function formatMoney(input) {
-	let suffix = ''
-	let money = input;
-	if (money / 1000 > 1) {
-		money = money / 1000;
-		suffix = 'k';
-	}
-	if (money / 1000 > 1) {
-		money = money / 1000;
-		suffix = 'm';
-	}
-	if (money / 1000 > 1) {
-		money = money / 1000;
-		suffix = 'b';
-	}
-	if (money / 1000 > 1) {
-		money = money / 1000;
-		suffix = 't';
-	}
-	return `\$${money.toFixed(3)}${suffix}`
 }

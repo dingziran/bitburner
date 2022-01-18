@@ -1,3 +1,4 @@
+import { formatMoney } from './utils';
 const weakScript = "weak.js";
 const growScript = "grow.js";
 const hackScript = "hack.js";
@@ -313,26 +314,4 @@ function getServers(ns) {
     return res;
   });
   return serverObjs.sort((a, b) => b.freeRam - a.freeRam);
-}
-
-function formatMoney(input) {
-  let suffix = "";
-  let money = input;
-  if (money / 1000 > 1) {
-    money = money / 1000;
-    suffix = "k";
-  }
-  if (money / 1000 > 1) {
-    money = money / 1000;
-    suffix = "m";
-  }
-  if (money / 1000 > 1) {
-    money = money / 1000;
-    suffix = "b";
-  }
-  if (money / 1000 > 1) {
-    money = money / 1000;
-    suffix = "t";
-  }
-  return `\$${money.toFixed(3)}${suffix}`;
 }
