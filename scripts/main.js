@@ -17,8 +17,8 @@ export async function main(ns) {
 	ns.disableLog('ALL');
 	while (true) {
 		if (targetServer
-			&& ns.getServerMinSecurityLevel(targetServer) === ns.getServerSecurityLevel(target)
-			&& ns.getServerMaxMoney(targetServer) === ns.getServerMoneyAvailable(target)) {
+			&& ns.getServerMinSecurityLevel(targetServer) === ns.getServerSecurityLevel(targetServer)
+			&& ns.getServerMaxMoney(targetServer) === ns.getServerMoneyAvailable(targetServer)) {
 			ns.tprint('finished WG for server ' + targetServer)
 			return;
 		}
