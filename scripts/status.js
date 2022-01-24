@@ -1,7 +1,16 @@
-import { formatMoney } from './utils';
+import { getHosts, getServers, getPS } from './utils.js';
+
 /** @param {NS} ns **/
 export async function main(ns) {
+	const weakRam = ns.getScriptRam('weakH.js');
+	const hackRam = ns.getScriptRam('hack.js');
+	const growRam = ns.getScriptRam('grow.js');
+	const hasFormula = ns.fileExists('Formulas.exe');
+	const player = ns.getPlayer();
 	const hosts = getHosts(ns);
+	const servers = getServers(ns);
+	const totalRam = servers.reduce((mem, cur) => mem + cur.maxRam, 0);
+	const ps = getPS(ns, servers.map(s => s.hostname))
 	let output = '';
 	output += '\n'
 		+ 'hostname\t'
@@ -9,13 +18,18 @@ export async function main(ns) {
 		+ 'priority\t'
 		+ 'maxMoney  '
 		+ 'growthRate '
-		+ 'hackRate '
+		// + 'hackRate '
 		+ 'chance '
 		+ 'securityGap '
 		+ 'growthGap '
 		+ 'hackTime '
 		+ 'growTime '
-		+ 'weakenTime'
+		+ 'weakenTime '
+		+ 'ramAssigned '
+		+ 's '
+		// + 'hackExp '
+		// + 'growExp '
+		// + 'weakenExp '
 		// + 'threadsToDouble'
 		// + 'threadsToHalf'
 		;
@@ -25,27 +39,41 @@ export async function main(ns) {
 		const status = getHostStatus(ns, host)
 		// ns.tprint(ns.getServer(host));
 		// ns.tprint(getHostStatus(ns, host))
-		const priority = (status.securityGap === 0 && status.currentMoney === server.moneyMax) ? Math.log10(
+		const priority =
+			(status.securityGap === 0 && status.currentMoney === server.moneyMax)
+				? Math.log10(
 
-			server.moneyMax
-			// * server.serverGrowth
-			* status.chance
-			/ status.weakenTime
-			// * status.hackRate || 1
-			) : ''
+					server.moneyMax
+					* server.serverGrowth
+					* status.chance
+					/ status.weakenTime
+					* status.hackRate || 1
+				) : ''
 		output += '\n' + [
 			pad(server.hostname, 0, 20),
 			server.requiredHackingSkill,
 			pad(priority, 2),
 			formatMoney(server.moneyMax),
 			server.serverGrowth,
-			pad(status.hackRate, 4),
+			// pad(status.hackRate, 4),
 			pad(status.chance, 2),
 			pad(status.securityGap > 0 ? status.securityGap : '', 1, 6),
 			pad((server.moneyMax / (status.currentMoney || 1)) > 1 ? (server.moneyMax / (status.currentMoney || 1)) : '', 1, 6),
 			pad(status.hackTime / 60000, 1),
 			pad(status.growTime / 60000, 1),
 			pad(status.weakenTime / 60000, 1),
+			pad(ps.filter(p => p.args[0] === server.hostname).reduce((mem, cur) => {
+				if (cur.filename === 'hack.js') {
+					return mem + cur.threads * hackRam;
+				} else if (cur.filename === 'grow.js') {
+					return mem + cur.threads * growRam;
+				} else if (['weak.js', 'weakH.js', 'weakG.js'].includes(cur.filename)) {
+					return mem + cur.threads * weakRam;
+				} else {
+					return mem + ns.getRunningScript(cur.pid, cur.hostname, cur.args).ramUsage;
+				}
+			}, 0) || '', 1),
+			pad(status.securityGap === 0 && hasFormula ? ns.nFormat((1 - 1 / ns.formulas.hacking.growPercent(server, totalRam / 5 / status.growTime * 200 * 4 / growRam, player, 1)) * server.moneyMax * status.chance, '0.0a') : '', 0)
 			// pad(ns.hackAnalyzeThreads(server.hostname, 0.5 * server.moneyMax)),
 			// pad(ns.growthAnalyze(server.hostname, 2)),
 		].map(i => pad(i)).join('');
@@ -61,56 +89,8 @@ export async function main(ns) {
 	// ns.tprint(ns.growthAnalyzeSecurity(1))
 	// ns.tprint('security decrease per weak')
 	// ns.tprint(ns.weakenAnalyze(1, 1))
+	ns.tprint(`freeRam ${ns.nFormat(servers.reduce((mem, cur) => mem + cur.freeRam, 0) * 1000 * 1000 * 1000, '0.0 b')}/${ns.nFormat(servers.reduce((mem, cur) => mem + cur.maxRam, 0) * 1000 * 1000 * 1000, '0.0 b')}`)
 
-}
-
-function getHosts(ns) {
-	let portsRequired = 0;
-	if (ns.fileExists('BruteSSH.exe')) {
-		portsRequired++;
-	}
-	if (ns.fileExists('FTPCrack.exe')) {
-		portsRequired++;
-	}
-	if (ns.fileExists('relaySMTP.exe')) {
-		portsRequired++;
-	}
-	if (ns.fileExists('HTTPWorm.exe')) {
-		portsRequired++;
-	}
-	if (ns.fileExists('SQLInject.exe')) {
-		portsRequired++;
-	}
-	return iterateScan(ns, 'home', portsRequired);
-}
-
-function iterateScan(ns, host, portsRequired, parentHost) {
-	return [host, ...ns.scan(host).filter(subHost =>
-		subHost !== parentHost
-		&& ns.getServerRequiredHackingLevel(subHost) <= ns.getHackingLevel()
-		&& ns.getServerNumPortsRequired(subHost) <= portsRequired
-		&& subHost.indexOf('-server-') === -1
-	).map(subHost => {
-		if (!ns.hasRootAccess(subHost)) {
-			if (ns.fileExists('BruteSSH.exe')) {
-				ns.brutessh(subHost);
-			}
-			if (ns.fileExists('FTPCrack.exe')) {
-				ns.ftpcrack(subHost);
-			}
-			if (ns.fileExists('relaySMTP.exe')) {
-				ns.relaysmtp(subHost);
-			}
-			if (ns.fileExists('HTTPWorm.exe')) {
-				ns.httpworm(subHost);
-			}
-			if (ns.fileExists('SQLInject.exe')) {
-				ns.sqlinject(subHost);
-			}
-			ns.nuke(subHost);
-		}
-		return subHost
-	}).flatMap(subHost => iterateScan(ns, subHost, portsRequired, host))]
 }
 
 function getHostStatus(ns, host) {
@@ -132,4 +112,26 @@ function pad(input, fixed = 0, pad = 10) {
 	}
 	return String(input).padEnd(pad, ' ');
 
+}
+
+function formatMoney(input) {
+	let suffix = ''
+	let money = input;
+	if (money / 1000 > 1) {
+		money = money / 1000;
+		suffix = 'k';
+	}
+	if (money / 1000 > 1) {
+		money = money / 1000;
+		suffix = 'm';
+	}
+	if (money / 1000 > 1) {
+		money = money / 1000;
+		suffix = 'b';
+	}
+	if (money / 1000 > 1) {
+		money = money / 1000;
+		suffix = 't';
+	}
+	return `\$${money.toFixed(3)}${suffix}`
 }

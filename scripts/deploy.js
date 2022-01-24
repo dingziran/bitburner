@@ -1,6 +1,7 @@
 /** @param {NS} ns **/
 export async function main(ns) {
 	const hosts = getHosts(ns)
+	// .concat(ns.getPurchasedServers());
 	const script = "basic_wgh.js"
 	const scriptRam = ns.getScriptRam(script);
 	for (let host of hosts) {

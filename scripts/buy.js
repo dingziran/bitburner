@@ -1,7 +1,6 @@
 const weakScript = 'weak.js';
 const growScript = 'grow.js';
 const hackScript = 'hack.js';
-
 /** @param {NS} ns **/
 export async function main(ns) {
 	while (true) {
@@ -12,6 +11,7 @@ export async function main(ns) {
 		} else {
 			await replaceServer(ns, servers);
 		}
+		return;
 		await ns.sleep(30 * 1000);
 	}
 }
@@ -30,6 +30,8 @@ async function buyServer(ns, index) {
 		await ns.scp(growScript, 'home', newServerName);
 		await ns.scp(weakScript, 'home', newServerName);
 		await ns.scp(hackScript, 'home', newServerName);
+		await ns.scp('weakH.js', 'home', newServerName);
+		await ns.scp('weakG.js', 'home', newServerName);
 		ns.tprint('buy ', newServerName);
 	}
 }
